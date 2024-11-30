@@ -36,6 +36,7 @@ class CampaignsStream(VkAdsStream):
             description="The campaign's system ID",
         ),
         th.Property("name", th.StringType),
+        th.Property("account", th.StringType),
         th.Property("created", th.DateTimeType),
         th.Property("date_start", th.DateType),
         th.Property("date_end", th.DateType),
@@ -55,10 +56,12 @@ class CampaignsStream(VkAdsStream):
             Each record from the source.
         """
         res = response.json().get('items')
-        #for record in res:
+        for record in res:
+            record.update({'account': self.config.get("account")})
         #    self.logger.error(json.dumps(record))
         self.cont["ids"] = [record.get('id') for record in res]  # Обновляем состояние
         # Логируем изменения в контексте
+
         self.logger.info(f"Updated context: {self.cont}")
         yield from extract_jsonpath(self.records_jsonpath, input=res)
 
@@ -140,6 +143,7 @@ class CampaignsStatisticStream(CampaignsStream):
         th.Property("ad_offers.earn_offer_rewards", th.StringType),
         # social_network
         th.Property("social_network.vk_join", th.StringType),
+        th.Property("social_network.vk_subscribe", th.StringType),
         th.Property("social_network.ok_join", th.StringType),
         th.Property("social_network.dzen_join", th.StringType),
         th.Property("social_network.result_join", th.StringType),

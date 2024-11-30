@@ -56,6 +56,12 @@ class TapVkAds(Tap):
             default=str(date.today()),
             description="Конечная дата"
         ),
+        th.Property(
+            "account",
+            th.StringType,
+            title="Аккаунт в vk ads",
+            description="Аккаунт в vk ads",
+        ),
     ).to_dict()
 
     def discover_streams(self) -> list[streams.VkAdsStream]:
