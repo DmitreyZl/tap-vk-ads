@@ -73,6 +73,7 @@ class TapVkAds(Tap):
         return [
             streams.CampaignsStream(self),
             streams.CampaignsStatisticStream(self),
+            streams.AdGroupStream(self)
         ]
 
 
