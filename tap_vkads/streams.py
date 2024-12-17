@@ -37,6 +37,8 @@ class CampaignsStream(VkAdsStream):
         ),
         th.Property("name", th.StringType),
         th.Property("account", th.StringType),
+        th.Property("status", th.StringType),
+        th.Property("ad_plan_id", th.StringType),
         th.Property("created", th.DateTimeType),
         th.Property("date_start", th.DateType),
         th.Property("date_end", th.DateType),
@@ -63,6 +65,75 @@ class CampaignsStream(VkAdsStream):
         # Логируем изменения в контексте
 
         self.logger.info(f"Updated context: {self.cont}")
+        yield from extract_jsonpath(self.records_jsonpath, input=res)
+
+
+class AdGroupStream(VkAdsStream):
+    """Define custom stream."""
+
+    name = "ad_plans"
+    path = "/ad_plans.json"
+    primary_keys = ["id"]
+    replication_key = "id"
+    # Optionally, you may also use `schema_filepath` in place of `schema`:
+    # schema_filepath = SCHEMAS_DIR / "users.json"  # noqa: ERA001
+    #id,name,created,date_start,date_end,utm,objective,budget_limit,budget_limit_day
+    schema = th.PropertiesList(
+        th.Property(
+            "id",
+            th.StringType,
+            description="The adsGroup's system ID",
+        ),
+        th.Property("name", th.StringType),
+        th.Property("account", th.StringType),
+        th.Property("status", th.StringType),
+        th.Property("created", th.DateTimeType),
+        th.Property("date_start", th.DateType),
+        th.Property("date_end", th.DateType),
+        th.Property("objective", th.StringType),
+        th.Property("budget_limit", th.StringType),
+        th.Property("budget_limit_day", th.StringType)
+    ).to_dict()
+
+    def get_url_params(
+            self,
+            context: Context | None,  # noqa: ARG002
+            next_page_token: t.Any | None,  # noqa: ANN401
+    ) -> dict[str, t.Any]:
+        """Return a dictionary of values to be used in URL parameterization.
+
+        Args:
+            context: The stream context.
+            next_page_token: The next page index or value.
+
+        Returns:
+            A dictionary of URL query parameters.
+        """
+        params = {'fields': 'id,name,status,created,date_start,date_end,objective,budget_limit,budget_limit_day'}
+        params["limit"] = 250
+        if next_page_token:
+            params["offset"] = next_page_token
+        self.logger.error(params)
+        return params
+
+    def parse_response(self, response: requests.Response) -> t.Iterable[dict]:
+        """Parse the response and return an iterator of result records.
+
+        Args:
+            response: The HTTP ``requests.Response`` object.
+            context
+        Yields:
+            Each record from the source.
+        """
+        self.logger.error(response.text)
+        res = response.json().get('items')
+        for record in res:
+            record.update({'account': self.config.get("account")})
+        #    self.logger.error(json.dumps(record))
+        #self.cont["ids"] = [record.get('id') for record in res]  # Обновляем состояние
+        # Логируем изменения в контексте
+
+        #self.logger.info(f"Updated context: {self.cont}")
         yield from extract_jsonpath(self.records_jsonpath, input=res)
 
 
