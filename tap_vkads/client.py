@@ -58,29 +58,29 @@ class VkAdsStream(RESTStream):
         return {}
 
     def get_next_page_token(self, response, previous_token):
-        data = response.json()
-
+        data = response.json() if hasattr(response, "json") else (response or {})
         items = data.get('items') or []
         count = data.get('count') or 0
 
-        # Текущий оффсет, который вы передавали в запрос
         current_offset = data.get('offset') or 0
         batch_size = len(items)
 
-        # Если ничего не пришло — считаем, что дошли до конца
-        if batch_size == 0:
+        # 1) Пустая выдача или явный ноль — считаем, что конец
+        if batch_size == 0 or count == 0:
             return 0
 
-        # Если count неизвестен/некорректен — просто сдвигаем на размер пачки
-        if not isinstance(count, int) or count <= 0:
-            next_offset = current_offset + batch_size
-        return next_offset
+        # 2) count неизвестен/некорректен — увеличиваем "вслепую"
+        if not isinstance(count, int) or count < 0:
+            return current_offset
 
-        # Обычный случай: сдвигаем оффсет, проверяем конец
+        # 3) Защита от рассинхронизации: текущий оффсет уже за пределами count
+        if current_offset >= count:
+            return 0
+
+        # 4) Обычное перелистывание страниц
         next_offset = current_offset + batch_size
         if next_offset >= count:
             return 0
-
         return next_offset
     
         
