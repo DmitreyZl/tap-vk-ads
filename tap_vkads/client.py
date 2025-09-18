@@ -57,6 +57,33 @@ class VkAdsStream(RESTStream):
         # headers["Private-Token"] = self.config.get("auth_token")  # noqa: ERA001
         return {}
 
+    def get_next_page_token(self, response, previous_token):
+        data = response.json()
+
+        items = data.get('items') or []
+        count = data.get('count') or 0
+
+        # Текущий оффсет, который вы передавали в запрос
+        current_offset = data.get('offset') or 0
+        batch_size = len(items)
+
+        # Если ничего не пришло — считаем, что дошли до конца
+        if batch_size == 0:
+            return 0
+
+        # Если count неизвестен/некорректен — просто сдвигаем на размер пачки
+        if not isinstance(count, int) or count <= 0:
+            next_offset = current_offset + batch_size
+        return next_offset
+
+        # Обычный случай: сдвигаем оффсет, проверяем конец
+        next_offset = current_offset + batch_size
+        if next_offset >= count:
+            return 0
+
+        return next_offset
+    
+        
     def get_url_params(
             self,
             context: Context | None,  # noqa: ARG002
